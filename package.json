@@ -1,0 +1,25 @@
+{
+  "name": "part-3",
+  "version": "1.0.0",
+  "description": "Part 3 Exercises",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Beakaltigabu/Part-3.git"
+  },
+  "author": "Beakal",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Beakaltigabu/Part-3/issues"
+  },
+  "homepage": "https://github.com/Beakaltigabu/Part-3#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "morgan": "^1.10.0"
+  }
+}
