@@ -1,6 +1,9 @@
 const express=require('express')
 const morgan=require('morgan')
 const cors=require('cors')
+require('dotenv').config()
+const Person=require('./models/person')
+const person = require('./models/person')
 const app=express()
 
 
@@ -14,8 +17,15 @@ morgan.token('body', (req)=>{
      return JSON.stringify(req.body)
   }
   return ''
-
 })
+
+const errorHandler=(error,request, response, next )=>{
+  if(error.name==='CastError'){
+    return response.status(400).send({error:'manlformatted it'})
+  }
+  next(error)
+}
+
 
 app.use(morgan(':method :url :status :res[content-length] -:response-time ms :body'))
 
@@ -48,38 +58,54 @@ const generatedId=()=>{
 }
 
 app.get('/api/persons',(request,response)=>{
-    response.json(persons)
+    Person.find({}).then(persons=>{
+      response.json(persons)
+    })
 })
 
-app.get('/info', (req,res)=>{
+app.get('/info', (req,res,next)=>{
     const date=new Date()
-    res.send(`<div>
-        <p>Phonebook has info for ${persons.length} people</p>
-        <p>${date}</p>
-        </div>`)
+    Person.countDocuments({})
+.then(count=>{
+  res.send(
+    `<div>
+    <p>Phonebook has info for ${count} people</p>
+    <p>${date}</p>
+    </div>`)
+
+})
+.catch(error=>next(error))
+
 })
 
-app.get('/api/persons/:id', (req,res)=>{
-    const id=req.params.id
-    const person=persons.find(p=>p.id===id)
-    if(person){
-        res.send(person)
-    }else{person
-        res.status(404).end()
-    }
+app.get('/api/persons/:id', (req,res,next)=>{
+    Person.findById(req.params.id)
+    .then(person=>{
+      if(person){
+        res.json(person)
+      }else{
+        res.status(404).send({error:'Person not found'})
+      }
+    })
+    .catch(error=>next(error))
 })
+
+
+
 
 
 app.delete('/api/persons/:id',(req,res)=>{
-  const id=req.params.id
-   persons=persons.filter(p=>p.id !==id)
-
-  res.status(204).end()
+  Person.findByIdAndDelete(req.params.id)
+  .then(result=>{
+    res.status(204).end()
+  })
+  .catch(error=>next(error))
 })
 
 
-app.post('/api/persons', (req,res)=>{
+app.post('/api/persons', (req,res,next)=>{
   const body=req.body
+
    if(!body){
     res.status(400).json({error: 'No Content Foud'})
   }
@@ -92,23 +118,26 @@ app.post('/api/persons', (req,res)=>{
      return res.status(400).json({error: ' Number is Required'})
   }
 
-   const nameExists=persons.some(p=>p.name===body.name);
-   if(nameExists){
-   return res.status(400).json({error:'Name must be unique'});
-   }
-
-
-
-  const newPerson={
-    id:generatedId(),
-    name:body.name,
-    number:body.number
-  }
-  persons.push(newPerson)
-  res.status(201).json(newPerson)
-
+  Person.findOne({name:body.name})
+  .then(existingPerson=>{
+    if(existingPerson){
+      return res.status(400).json({error:'Person already exists. Use another one'})
+    }
+    const person=new Person({
+  name:body.name,
+  number:body.number
+});
+return person.save()
+  })
+  .then(savedPerson=>{
+    if(savedPerson){
+      res.status(201).json(savedPerson);
+    }
+  })
+  .catch(error=>next(error))
 })
 
+app.use(errorHandler)
 
 const PORT=3001
 app.listen(PORT,()=>{
